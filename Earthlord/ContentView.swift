@@ -34,6 +34,18 @@ struct ContentView: View {
                         .background(Color.green)
                         .cornerRadius(10)
                 }
+
+                Spacer()
+                    .frame(height: 20)
+
+                NavigationLink(destination: SupabaseTestView()) {
+                    Text("Supabase 连接测试")
+                        .font(.body)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.orange)
+                        .cornerRadius(10)
+                }
             }
             .padding()
         }
