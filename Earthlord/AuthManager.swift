@@ -36,6 +36,9 @@ class AuthManager: ObservableObject {
     /// OTP 验证码是否已验证（验证后等待设置密码）
     @Published var otpVerified: Bool = false
 
+    /// 会话是否过期（用于显示提示信息）
+    @Published var sessionExpired: Bool = false
+
     // MARK: - Private Properties
 
     /// Supabase 客户端实例
@@ -68,6 +71,8 @@ class AuthManager: ObservableObject {
                 case .signedIn:
                     // 用户登录
                     currentUser = state.session?.user
+                    // 清除会话过期标志
+                    sessionExpired = false
                     // 只有在不需要设置密码时才标记为已认证
                     if !needsPasswordSetup {
                         isAuthenticated = true
@@ -76,15 +81,26 @@ class AuthManager: ObservableObject {
 
                 case .signedOut:
                     // 用户登出
+                    let wasAuthenticated = isAuthenticated
                     currentUser = nil
                     isAuthenticated = false
                     needsPasswordSetup = false
                     otpVerified = false
-                    print("🔓 用户已登出")
+
+                    // 如果之前是已认证状态，且不是主动登出，则标记为会话过期
+                    // 主动登出时 isLoading 会是 true（因为 signOut() 方法会设置）
+                    if wasAuthenticated && !isLoading {
+                        sessionExpired = true
+                        print("⏰ 会话已过期")
+                    } else {
+                        sessionExpired = false
+                        print("🔓 用户已登出")
+                    }
 
                 case .tokenRefreshed:
-                    // Token 刷新
+                    // Token 刷新成功，清除过期标志
                     currentUser = state.session?.user
+                    sessionExpired = false
                     print("🔄 Token 已刷新")
 
                 case .userUpdated:
@@ -337,6 +353,7 @@ class AuthManager: ObservableObject {
             needsPasswordSetup = false
             otpVerified = false
             otpSent = false
+            sessionExpired = false
             isLoading = false
 
         } catch {

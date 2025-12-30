@@ -65,12 +65,29 @@ struct AuthView: View {
 
             ScrollView {
                 VStack(spacing: 30) {
+                    // 会话过期提示
+                    if authManager.sessionExpired {
+                        HStack(spacing: 12) {
+                            Image(systemName: "clock.badge.exclamationmark")
+                                .font(.title3)
+                            Text("您的登录已过期，请重新登录")
+                                .font(.subheadline)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.orange.opacity(0.8))
+                        .cornerRadius(10)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                    }
+
                     // Logo 和标题
                     VStack(spacing: 16) {
                         Image(systemName: "globe.asia.australia.fill")
                             .font(.system(size: 80))
                             .foregroundColor(.blue)
-                            .padding(.top, 60)
+                            .padding(.top, authManager.sessionExpired ? 20 : 60)
 
                         Text("地球新主")
                             .font(.system(size: 36, weight: .bold))

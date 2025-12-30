@@ -37,8 +37,8 @@ struct RootContentView: View {
             } else {
                 // 第二阶段：根据认证状态显示页面
                 if authManager.isAuthenticated {
-                    // 已登录 - 显示主页
-                    ContentView()
+                    // 已登录 - 显示主应用（Tab 导航）
+                    MainTabView()
                         .transition(.opacity)
                 } else {
                     // 未登录 - 显示认证页面
