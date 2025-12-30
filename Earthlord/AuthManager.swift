@@ -41,10 +41,62 @@ class AuthManager: ObservableObject {
     /// Supabase 客户端实例
     private let supabase: SupabaseClient
 
+    /// 认证状态监听任务
+    private var authStateTask: Task<Void, Never>?
+
     // MARK: - Initialization
 
     init(supabase: SupabaseClient) {
         self.supabase = supabase
+        // 启动认证状态监听
+        setupAuthStateListener()
+    }
+
+    deinit {
+        // 取消监听任务
+        authStateTask?.cancel()
+    }
+
+    // MARK: - 认证状态监听
+
+    /// 设置认证状态监听器
+    private func setupAuthStateListener() {
+        authStateTask = Task { @MainActor in
+            for await state in await supabase.auth.authStateChanges {
+                // 监听认证状态变化
+                switch state.event {
+                case .signedIn:
+                    // 用户登录
+                    currentUser = state.session?.user
+                    // 只有在不需要设置密码时才标记为已认证
+                    if !needsPasswordSetup {
+                        isAuthenticated = true
+                    }
+                    print("🔐 用户已登录：\(state.session?.user.email ?? "未知")")
+
+                case .signedOut:
+                    // 用户登出
+                    currentUser = nil
+                    isAuthenticated = false
+                    needsPasswordSetup = false
+                    otpVerified = false
+                    print("🔓 用户已登出")
+
+                case .tokenRefreshed:
+                    // Token 刷新
+                    currentUser = state.session?.user
+                    print("🔄 Token 已刷新")
+
+                case .userUpdated:
+                    // 用户信息更新
+                    currentUser = state.session?.user
+                    print("👤 用户信息已更新")
+
+                default:
+                    break
+                }
+            }
+        }
     }
 
     // MARK: - 注册流程方法

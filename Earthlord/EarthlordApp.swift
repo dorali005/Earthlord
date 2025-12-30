@@ -17,25 +17,37 @@ struct EarthlordApp: App {
         WindowGroup {
             RootContentView()
                 .environmentObject(authManager)
-                .task {
-                    // 应用启动时检查会话状态
-                    await authManager.checkSession()
-                }
         }
     }
 }
 
-/// 根内容视图 - 根据认证状态显示不同页面
+/// 根内容视图 - 启动页 → 认证页 → 主页
 struct RootContentView: View {
     @EnvironmentObject var authManager: AuthManager
 
+    /// 启动页是否完成
+    @State private var splashFinished = false
+
     var body: some View {
-        if authManager.isAuthenticated {
-            // 已登录 - 显示主页
-            ContentView()
-        } else {
-            // 未登录 - 显示认证页面
-            AuthView(authManager: authManager)
+        ZStack {
+            if !splashFinished {
+                // 第一阶段：显示启动页（带认证检查）
+                SplashView(isFinished: $splashFinished)
+                    .transition(.opacity)
+            } else {
+                // 第二阶段：根据认证状态显示页面
+                if authManager.isAuthenticated {
+                    // 已登录 - 显示主页
+                    ContentView()
+                        .transition(.opacity)
+                } else {
+                    // 未登录 - 显示认证页面
+                    AuthView(authManager: authManager)
+                        .transition(.opacity)
+                }
+            }
         }
+        .animation(.easeInOut(duration: 0.3), value: splashFinished)
+        .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
     }
 }

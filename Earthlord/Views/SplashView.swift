@@ -7,8 +7,11 @@
 
 import SwiftUI
 
-/// 启动页视图
+/// 启动页视图 - 带认证检查
 struct SplashView: View {
+    /// 认证管理器
+    @EnvironmentObject var authManager: AuthManager
+
     /// 是否显示加载动画
     @State private var isAnimating = false
 
@@ -148,22 +151,31 @@ struct SplashView: View {
         }
     }
 
-    // MARK: - 模拟加载
+    // MARK: - 加载流程（集成认证检查）
 
     private func simulateLoading() {
-        // 模拟加载过程
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            loadingText = "正在加载资源..."
-        }
+        Task {
+            // 第一阶段：初始化
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
+            await MainActor.run {
+                loadingText = "正在检查登录状态..."
+            }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            loadingText = "准备就绪"
-        }
+            // 第二阶段：检查会话
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
+            await authManager.checkSession()
 
-        // 完成加载，进入主界面
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                isFinished = true
+            // 第三阶段：准备就绪
+            await MainActor.run {
+                loadingText = "准备就绪"
+            }
+
+            // 完成加载，进入主界面
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isFinished = true
+                }
             }
         }
     }
