@@ -8,11 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		F78057E42EFEE6F900C4763E /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = F78057E32EFEE6F900C4763E /* Supabase */; };
-		F78058062EFEEDB700C4763E /* SupabaseTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F78058052EFEEDB700C4763E /* SupabaseTestView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		F78058052EFEEDB700C4763E /* SupabaseTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseTestView.swift; sourceTree = "<group>"; };
 		F7E420D72EFAE168006FCE35 /* Earthlord.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Earthlord.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -46,7 +44,6 @@
 		F7E420CE2EFAE168006FCE35 = {
 			isa = PBXGroup;
 			children = (
-				F78058052EFEEDB700C4763E /* SupabaseTestView.swift */,
 				F7E420D92EFAE168006FCE35 /* Earthlord */,
 				F78057E22EFEE6F900C4763E /* Frameworks */,
 				F7E420D82EFAE168006FCE35 /* Products */,
@@ -139,7 +136,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F78058062EFEEDB700C4763E /* SupabaseTestView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
