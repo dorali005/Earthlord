@@ -295,7 +295,10 @@ struct ProfileTabView: View {
             try await authManager.deleteAccount()
             print("✅ 账户删除完成，即将返回登录页面")
 
-            // 成功删除后，用户会自动返回登录页面（因为 isAuthenticated 变为 false）
+            // 删除成功，用户会自动返回登录页面
+            // 等待一小段时间确保状态更新
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
+
             isDeletingAccount = false
             deleteConfirmationText = ""
 
@@ -303,8 +306,6 @@ struct ProfileTabView: View {
             print("❌ 删除账户失败: \(error.localizedDescription)")
             isDeletingAccount = false
             deleteConfirmationText = ""
-
-            // 显示错误信息（可以考虑添加一个错误提示）
         }
     }
 }

@@ -376,6 +376,9 @@ class AuthManager: ObservableObject {
             let accessToken = session.accessToken
 
             print("🔑 获取到 access token")
+            print("   用户 ID: \(session.user.id)")
+            print("   用户邮箱: \(session.user.email ?? "无")")
+            print("   Token 前20字符: \(String(accessToken.prefix(20)))...")
 
             // 调用 Edge Function
             let functionURL = URL(string: "https://vbwenhbxnkplsgneairf.supabase.co/functions/v1/delete-account")!
@@ -406,17 +409,56 @@ class AuthManager: ObservableObject {
             if httpResponse.statusCode == 200 {
                 print("✅ 账户删除成功")
 
-                // 调用 signOut 触发认证状态监听器，自动清理所有状态
-                // 这会触发 authStateListener 的 signedOut 事件
-                try? await supabase.auth.signOut()
+                // 账户已被删除，直接清空本地状态
+                // 注意：此时用户已不存在，调用 signOut() 可能会失败
+                print("🔄 准备清空认证状态...")
+                print("   当前 isAuthenticated = \(isAuthenticated)")
 
-                print("🧹 已触发登出流程，即将返回登录页面")
+                await MainActor.run {
+                    print("   [主线程] 开始更新状态")
+                    currentUser = nil
+                    isAuthenticated = false
+                    needsPasswordSetup = false
+                    otpVerified = false
+                    otpSent = false
+                    sessionExpired = false
+                    isLoading = false
+                    print("   [主线程] 状态已更新，isAuthenticated = \(isAuthenticated)")
+                }
+
+                // 尝试清理 Supabase 本地存储（忽略错误）
+                try? await supabase.auth.signOut(scope: .local)
+
+                print("🧹 已清空本地认证状态，即将返回登录页面")
             } else {
                 // 解析错误信息
                 let errorResponse = try? JSONDecoder().decode([String: String].self, from: data)
                 let errorMsg = errorResponse?["error"] ?? "删除账户失败"
 
                 print("❌ 删除账户失败: \(errorMsg)")
+
+                // 如果返回 401 且提示用户不存在，说明账户可能已被删除
+                // 直接清空本地状态
+                if httpResponse.statusCode == 401 && errorMsg.contains("Invalid token or user not found") {
+                    print("⚠️  检测到用户不存在，可能已被删除，清空本地状态")
+
+                    await MainActor.run {
+                        currentUser = nil
+                        isAuthenticated = false
+                        needsPasswordSetup = false
+                        otpVerified = false
+                        otpSent = false
+                        sessionExpired = false
+                        isLoading = false
+                    }
+
+                    // 清理本地存储
+                    try? await supabase.auth.signOut(scope: .local)
+
+                    print("🧹 已清空本地状态，返回登录页")
+                    return // 成功处理，不抛出错误
+                }
+
                 errorMessage = errorMsg
                 isLoading = false
 
