@@ -406,16 +406,11 @@ class AuthManager: ObservableObject {
             if httpResponse.statusCode == 200 {
                 print("✅ 账户删除成功")
 
-                // 清空本地状态
-                currentUser = nil
-                isAuthenticated = false
-                needsPasswordSetup = false
-                otpVerified = false
-                otpSent = false
-                sessionExpired = false
-                isLoading = false
+                // 调用 signOut 触发认证状态监听器，自动清理所有状态
+                // 这会触发 authStateListener 的 signedOut 事件
+                try? await supabase.auth.signOut()
 
-                print("🧹 已清空本地认证状态")
+                print("🧹 已触发登出流程，即将返回登录页面")
             } else {
                 // 解析错误信息
                 let errorResponse = try? JSONDecoder().decode([String: String].self, from: data)
