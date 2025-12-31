@@ -363,6 +363,79 @@ class AuthManager: ObservableObject {
         }
     }
 
+    /// 删除账户
+    /// 调用 Edge Function 删除用户账户及所有相关数据
+    func deleteAccount() async throws {
+        print("🗑️ 开始删除账户流程")
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // 获取当前会话的 access token
+            let session = try await supabase.auth.session
+            let accessToken = session.accessToken
+
+            print("🔑 获取到 access token")
+
+            // 调用 Edge Function
+            let functionURL = URL(string: "https://vbwenhbxnkplsgneairf.supabase.co/functions/v1/delete-account")!
+
+            var request = URLRequest(url: functionURL)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            print("📡 正在调用删除账户 Edge Function...")
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            // 检查 HTTP 响应状态
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("❌ 无效的响应类型")
+                throw NSError(domain: "DeleteAccount", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的响应"])
+            }
+
+            print("📊 Edge Function 响应状态码: \(httpResponse.statusCode)")
+
+            // 解析响应
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📄 Edge Function 响应内容: \(responseString)")
+            }
+
+            // 检查是否成功
+            if httpResponse.statusCode == 200 {
+                print("✅ 账户删除成功")
+
+                // 清空本地状态
+                currentUser = nil
+                isAuthenticated = false
+                needsPasswordSetup = false
+                otpVerified = false
+                otpSent = false
+                sessionExpired = false
+                isLoading = false
+
+                print("🧹 已清空本地认证状态")
+            } else {
+                // 解析错误信息
+                let errorResponse = try? JSONDecoder().decode([String: String].self, from: data)
+                let errorMsg = errorResponse?["error"] ?? "删除账户失败"
+
+                print("❌ 删除账户失败: \(errorMsg)")
+                errorMessage = errorMsg
+                isLoading = false
+
+                throw NSError(domain: "DeleteAccount", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+            }
+
+        } catch {
+            print("❌ 删除账户过程中出现错误: \(error.localizedDescription)")
+            errorMessage = "删除账户失败：\(error.localizedDescription)"
+            isLoading = false
+            throw error
+        }
+    }
+
     /// 检查当前会话状态
     /// 在应用启动时调用，恢复用户登录状态
     func checkSession() async {
