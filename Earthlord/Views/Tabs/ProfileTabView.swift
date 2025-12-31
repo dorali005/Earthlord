@@ -45,7 +45,8 @@ struct ProfileTabView: View {
                         // 删除账户按钮
                         deleteAccountButton
 
-                        Spacer()
+                        // 底部留白
+                        Color.clear.frame(height: 30)
                     }
                     .padding(.top, 20)
                 }
