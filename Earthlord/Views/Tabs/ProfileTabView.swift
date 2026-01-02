@@ -12,11 +12,17 @@ struct ProfileTabView: View {
     /// 认证管理器
     @EnvironmentObject var authManager: AuthManager
 
+    /// 语言管理器
+    @ObservedObject var languageManager = LanguageManager.shared
+
     /// 是否显示退出登录确认弹窗
     @State private var showLogoutConfirmation = false
 
     /// 是否显示删除账户确认弹窗
     @State private var showDeleteAccountAlert = false
+
+    /// 是否显示语言选择弹窗
+    @State private var showLanguageSelection = false
 
     /// 用户输入的确认文本
     @State private var deleteConfirmationText = ""
@@ -147,6 +153,8 @@ struct ProfileTabView: View {
         VStack(spacing: 0) {
             settingRow(icon: "person.circle", title: "账户设置", showChevron: true) {}
             Divider().padding(.leading, 60)
+            languageSettingRow
+            Divider().padding(.leading, 60)
             settingRow(icon: "bell.badge", title: "通知设置", showChevron: true) {}
             Divider().padding(.leading, 60)
             settingRow(icon: "lock.shield", title: "隐私与安全", showChevron: true) {}
@@ -181,6 +189,40 @@ struct ProfileTabView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
+        }
+    }
+
+    // MARK: - 语言设置行
+
+    private var languageSettingRow: some View {
+        Button(action: {
+            showLanguageSelection = true
+        }) {
+            HStack(spacing: 16) {
+                Image(systemName: "globe")
+                    .font(.title3)
+                    .foregroundColor(ApocalypseTheme.primary)
+                    .frame(width: 30)
+
+                Text("语言设置")
+                    .font(.body)
+                    .foregroundColor(ApocalypseTheme.textPrimary)
+
+                Spacer()
+
+                Text(languageManager.currentLanguage.displayName)
+                    .font(.subheadline)
+                    .foregroundColor(ApocalypseTheme.textSecondary)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(ApocalypseTheme.textSecondary)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+        }
+        .sheet(isPresented: $showLanguageSelection) {
+            LanguageSelectionView(languageManager: languageManager)
         }
     }
 

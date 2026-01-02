@@ -13,10 +13,15 @@ struct EarthlordApp: App {
     // 创建全局的 AuthManager 实例
     @StateObject private var authManager = AuthManager(supabase: supabase)
 
+    // 创建全局的 LanguageManager 实例
+    @StateObject private var languageManager = LanguageManager.shared
+
     var body: some Scene {
         WindowGroup {
             RootContentView()
                 .environmentObject(authManager)
+                .environmentObject(languageManager)
+                .environment(\.locale, languageManager.currentLanguage.languageCode.map { Locale(identifier: $0) } ?? Locale.current)
         }
     }
 }
@@ -24,6 +29,7 @@ struct EarthlordApp: App {
 /// 根内容视图 - 启动页 → 认证页 → 主页
 struct RootContentView: View {
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var languageManager: LanguageManager
 
     /// 启动页是否完成
     @State private var splashFinished = false
@@ -49,5 +55,6 @@ struct RootContentView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: splashFinished)
         .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
+        .id(languageManager.refreshID) // 使用 refreshID 强制刷新整个视图树
     }
 }
