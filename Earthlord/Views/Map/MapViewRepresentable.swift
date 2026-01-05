@@ -18,6 +18,15 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 是否已定位到用户（防止重复居中）
     @Binding var hasLocatedUser: Bool
 
+    /// 路径追踪坐标数组
+    @Binding var trackingPath: [CLLocationCoordinate2D]
+
+    /// 路径更新版本号（触发轨迹重绘）
+    var pathUpdateVersion: Int
+
+    /// 是否正在追踪
+    var isTracking: Bool
+
     // MARK: - UIViewRepresentable Methods
 
     /// 创建地图视图
@@ -47,7 +56,8 @@ struct MapViewRepresentable: UIViewRepresentable {
 
     /// 更新地图视图
     func updateUIView(_ uiView: MKMapView, context: Context) {
-        // 空实现即可，地图更新由 Coordinator 处理
+        // 更新路径追踪轨迹
+        context.coordinator.updateTrackingPath(mapView: uiView, path: trackingPath, version: pathUpdateVersion)
     }
 
     /// 创建协调器
@@ -84,6 +94,9 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         /// 首次居中标志（防止重复居中）
         private var hasInitialCentered = false
+
+        /// 上次更新的路径版本号（防止重复绘制）
+        private var lastPathVersion: Int = -1
 
         init(_ parent: MapViewRepresentable) {
             self.parent = parent
@@ -151,6 +164,53 @@ struct MapViewRepresentable: UIViewRepresentable {
 
             // 其他标注可以在这里自定义
             return nil
+        }
+
+        /// ⭐ 关键方法：渲染地图覆盖物（轨迹线）
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            // 如果是路径追踪的轨迹线
+            if let polyline = overlay as? MKPolyline {
+                let renderer = MKPolylineRenderer(polyline: polyline)
+                renderer.strokeColor = UIColor.cyan  // 青色轨迹线
+                renderer.lineWidth = 5  // 线宽 5pt
+                renderer.lineCap = .round  // 圆头
+                renderer.lineJoin = .round  // 圆角连接
+                return renderer
+            }
+
+            // 默认渲染器
+            return MKOverlayRenderer(overlay: overlay)
+        }
+
+        // MARK: - Path Tracking Methods
+
+        /// 更新路径追踪轨迹
+        func updateTrackingPath(mapView: MKMapView, path: [CLLocationCoordinate2D], version: Int) {
+            // 版本号未变化，跳过更新
+            guard version != lastPathVersion else { return }
+
+            // 更新版本号
+            lastPathVersion = version
+
+            // 移除所有旧的轨迹线
+            mapView.removeOverlays(mapView.overlays)
+
+            // 如果路径为空或只有一个点，不绘制轨迹
+            guard path.count >= 2 else {
+                print("📍 路径点不足（\(path.count)个），不绘制轨迹")
+                return
+            }
+
+            // ⚠️ 关键：转换为 GCJ-02 坐标（解决中国 GPS 偏移问题）
+            let gcjPath = CoordinateConverter.wgs84ToGcj02(path)
+
+            // 创建轨迹线
+            let polyline = MKPolyline(coordinates: gcjPath, count: gcjPath.count)
+
+            // 添加轨迹线到地图
+            mapView.addOverlay(polyline)
+
+            print("📍 已绘制轨迹线（\(gcjPath.count)个点）")
         }
     }
 }

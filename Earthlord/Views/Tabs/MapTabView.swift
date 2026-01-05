@@ -8,6 +8,14 @@
 import SwiftUI
 import MapKit
 
+// MARK: - Extensions
+
+extension CLLocationCoordinate2D: Equatable {
+    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
+        return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
+    }
+}
+
 struct MapTabView: View {
     // MARK: - Properties
 
@@ -29,7 +37,10 @@ struct MapTabView: View {
                 // 已授权：显示地图
                 MapViewRepresentable(
                     userLocation: $userLocation,
-                    hasLocatedUser: $hasLocatedUser
+                    hasLocatedUser: $hasLocatedUser,
+                    trackingPath: $locationManager.pathCoordinates,
+                    pathUpdateVersion: locationManager.pathUpdateVersion,
+                    isTracking: locationManager.isTracking
                 )
                 .ignoresSafeArea()
             } else {
@@ -62,20 +73,29 @@ struct MapTabView: View {
                 }
             }
 
-            // 右下角定位按钮
+            // 右下角按钮组
             if locationManager.isAuthorized {
                 VStack {
                     Spacer()
-                    HStack {
+                    HStack(spacing: 12) {
                         Spacer()
+                        // 圈地按钮
+                        claimLandButton
+                        // 定位按钮
                         locationButton
                     }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
                 }
             }
         }
         .onAppear {
             // 页面出现时检查权限状态
             checkLocationPermission()
+        }
+        .onChange(of: locationManager.userLocation) { oldValue, newValue in
+            // 同步位置到本地状态
+            userLocation = newValue
         }
     }
 
@@ -220,8 +240,39 @@ struct MapTabView: View {
                 .clipShape(Circle())
                 .shadow(color: .black.opacity(0.3), radius: 8)
         }
-        .padding(.trailing, 16)
-        .padding(.bottom, 16)
+    }
+
+    /// 圈地按钮
+    private var claimLandButton: some View {
+        Button(action: {
+            togglePathTracking()
+        }) {
+            HStack(spacing: 8) {
+                // 图标
+                Image(systemName: locationManager.isTracking ? "stop.fill" : "flag.fill")
+                    .font(.body)
+
+                // 文字
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(locationManager.isTracking ? "停止圈地" : "开始圈地")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    // 追踪中显示点数
+                    if locationManager.isTracking {
+                        Text("\(locationManager.pathCoordinates.count) 个点")
+                            .font(.caption2)
+                            .opacity(0.9)
+                    }
+                }
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(locationManager.isTracking ? ApocalypseTheme.danger : ApocalypseTheme.primary)
+            .cornerRadius(25)  // 胶囊型
+            .shadow(color: .black.opacity(0.3), radius: 8)
+        }
     }
 
     // MARK: - Private Methods
@@ -242,6 +293,19 @@ struct MapTabView: View {
         // 这里只是触发重新定位，实际居中逻辑在 MapViewRepresentable 中
         hasLocatedUser = false
         print("🎯 用户点击定位按钮")
+    }
+
+    /// 切换路径追踪
+    private func togglePathTracking() {
+        if locationManager.isTracking {
+            // 正在追踪，停止
+            locationManager.stopPathTracking()
+            print("🛑 用户停止圈地")
+        } else {
+            // 未追踪，开始
+            locationManager.startPathTracking()
+            print("🚩 用户开始圈地")
+        }
     }
 
     /// 打开系统设置
