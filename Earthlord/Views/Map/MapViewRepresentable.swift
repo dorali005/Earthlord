@@ -171,8 +171,8 @@ struct MapViewRepresentable: UIViewRepresentable {
             // 如果是路径追踪的轨迹线
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
-                renderer.strokeColor = UIColor.cyan  // 青色轨迹线
-                renderer.lineWidth = 5  // 线宽 5pt
+                renderer.strokeColor = UIColor(red: 0, green: 1, blue: 1, alpha: 0.9)  // 明亮的青色轨迹线
+                renderer.lineWidth = 8  // 更粗的线宽
                 renderer.lineCap = .round  // 圆头
                 renderer.lineJoin = .round  // 圆角连接
                 return renderer
@@ -202,10 +202,10 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
 
             // ⚠️ 关键：转换为 GCJ-02 坐标（解决中国 GPS 偏移问题）
-            let gcjPath = CoordinateConverter.wgs84ToGcj02(path)
+            var gcjPath = CoordinateConverter.wgs84ToGcj02(path)
 
-            // 创建轨迹线
-            let polyline = MKPolyline(coordinates: gcjPath, count: gcjPath.count)
+            // 创建轨迹线（需要使用 var 和 & 来传递可变指针）
+            let polyline = MKPolyline(coordinates: &gcjPath, count: gcjPath.count)
 
             // 添加轨迹线到地图
             mapView.addOverlay(polyline)
